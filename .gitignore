@@ -1,0 +1,37 @@
+# Environment configuration
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Node/React artifacts
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+.uv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS / editor junk
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Coverage & reports
+.coverage
+coverage/
+*.coverage
+
