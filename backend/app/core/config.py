@@ -7,5 +7,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://dev:dev@localhost:5432/aiweb"
     REDIS_URL: str = "redis://localhost:6379/0"
     MILVUS_URI: str = "http://localhost:19530"
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",  # 忽略 .env 中未声明的其它变量
+    )
 settings = Settings()
