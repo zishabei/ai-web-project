@@ -29,21 +29,50 @@ export default function App() {
   const submit = async () => {
     const content = input.trim();
     if (!content || loading) return;
-    const nextMessages = [...messages, createMessage("user", content)];
-    setMessages(nextMessages);
+    const userMessage = createMessage("user", content);
+    const nextMessages = [...messages, userMessage];
+    const assistantPlaceholder = createMessage("assistant", "");
+    setMessages([...nextMessages, assistantPlaceholder]);
     setInput("");
     setLoading(true);
     setError(null);
 
     try {
-      const reply = await askAI(nextMessages);
-      setMessages([...nextMessages, reply]);
+      let aggregated = "";
+      const reply = await askAI(nextMessages, (chunk) => {
+        aggregated += chunk;
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastIndex = updated.length - 1;
+          if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
+            updated[lastIndex] = createMessage("assistant", aggregated);
+          }
+          return updated;
+        });
+      });
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastIndex = updated.length - 1;
+        if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
+          updated[lastIndex] = reply;
+        } else {
+          updated.push(reply);
+        }
+        return updated;
+      });
     } catch (err) {
       const fallback = "抱歉，请稍后重试或检查后端日志。";
-      setMessages([
-        ...nextMessages,
-        createMessage("assistant", fallback),
-      ]);
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastIndex = updated.length - 1;
+        const assistant = createMessage("assistant", fallback);
+        if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
+          updated[lastIndex] = assistant;
+        } else {
+          updated.push(assistant);
+        }
+        return updated;
+      });
       setError(err instanceof Error ? err.message : "未知错误");
     } finally {
       setLoading(false);

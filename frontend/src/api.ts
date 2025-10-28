@@ -13,15 +13,33 @@ export async function health() {
   return response.json();
 }
 
-export async function askAI(messages: ChatMessage[]): Promise<ChatMessage> {
+export async function askAI(
+  messages: ChatMessage[],
+  onChunk?: (chunk: string) => void,
+): Promise<ChatMessage> {
   const response = await fetch(`${API_BASE}/ai/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages }),
   });
   if (!response.ok) {
-    throw new Error("request failed");
+    const errorText = await response.text();
+    throw new Error(errorText || "request failed");
   }
-  const data = await response.json();
-  return data.message as ChatMessage;
+  if (!response.body) {
+    throw new Error("ReadableStream not supported in this browser");
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let full = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value, { stream: true });
+    if (chunk) {
+      full += chunk;
+      onChunk?.(chunk);
+    }
+  }
+  return { role: "assistant", content: full };
 }

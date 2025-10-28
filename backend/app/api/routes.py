@@ -1,9 +1,10 @@
 from typing import Literal
 
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.services.ai import ask_llm
+from app.services.ai import stream_llm
 
 router = APIRouter()
 
@@ -22,11 +23,9 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
 
 
-class ChatResponse(BaseModel):
-    message: ChatMessage
-
-
-@router.post("/ai/ask", response_model=ChatResponse)
+@router.post("/ai/ask")
 def ai_ask(body: ChatRequest):
-    reply = ask_llm([msg.model_dump() for msg in body.messages])
-    return {"message": {"role": "assistant", "content": reply}}
+    def token_stream():
+        for chunk in stream_llm([msg.model_dump() for msg in body.messages]):
+            yield chunk
+    return StreamingResponse(token_stream(), media_type="text/plain")
