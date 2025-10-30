@@ -121,7 +121,7 @@ export default function App() {
   };
   return (
     <>
-      <div className="flex h-dvh min-h-0 flex-col bg-[#666666] text-slate-900">
+      <div className="flex h-dvh min-h-0 flex-col bg-[#b0afaf] text-slate-900">
 
       <header className="shrink-0 border-b border-slate-200 bg-white/70 backdrop-blur">
         <div className="mx-auto flex h-12 w-full max-w-3xl items-center justify-between px-4">
@@ -204,7 +204,6 @@ export default function App() {
         </div>
       </main>
 
-      {/* 底部：输入框 —— 正常流中的底栏，不悬浮 */}
       <footer className="shrink-0 border-t border-slate-200 bg-white/90">
         <div className="mx-auto w-full max-w-3xl px-4 py-3">
           <form
