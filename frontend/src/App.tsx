@@ -2,7 +2,7 @@ import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
-import { askAI, health, type ChatMessage } from "./api";
+import { askAI, health, uploadKnowledgeFile, type ChatMessage } from "./api";
 import "highlight.js/styles/github.css";
 
 const createMessage = (
@@ -25,6 +25,9 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isComposing, setIsComposing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadFeedback, setUploadFeedback] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
   const initialRender = useRef(true);
 
@@ -70,9 +73,19 @@ export default function App() {
         const updated = [...prev];
         const lastIndex = updated.length - 1;
         if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
-          updated[lastIndex] = reply;
+          updated[lastIndex] = reply.message;
         } else {
-          updated.push(reply);
+          updated.push(reply.message);
+        }
+        if (reply.tool_calls?.length) {
+          reply.tool_calls.forEach((tool, idx) => {
+            updated.push(
+              createMessage(
+                "assistant",
+                `# 工具调用 ${idx + 1}\n${tool.result ?? "（无返回内容）"}`,
+              ),
+            );
+          });
         }
         return updated;
       });
@@ -107,14 +120,48 @@ export default function App() {
     }
   };
   return (
-    <div className="flex h-dvh min-h-0 flex-col bg-[#666666] text-slate-900">
+    <>
+      <div className="flex h-dvh min-h-0 flex-col bg-[#666666] text-slate-900">
 
       <header className="shrink-0 border-b border-slate-200 bg-white/70 backdrop-blur">
         <div className="mx-auto flex h-12 w-full max-w-3xl items-center justify-between px-4">
           <div className="text-sm text-slate-600">
             后端：<span className="font-mono text-emerald-600">{status}</span>
           </div>
-          <div className="text-sm text-slate-500">Simple Chat</div>
+          <label className={`relative inline-flex cursor-pointer items-center gap-2 rounded-full bg-white px-3 py-1 text-sm text-slate-600 shadow ${uploading ? "opacity-70" : ""}`}>
+            <input
+              type="file"
+              className="absolute inset-0 cursor-pointer opacity-0"
+              disabled={uploading}
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                setError(null);
+                setUploading(true);
+                setUploadFeedback(null);
+                try {
+                  const vectorStoreId =
+                    import.meta.env.VITE_VECTOR_STORE_ID || "";
+                  if (!vectorStoreId) {
+                    throw new Error("未配置 VITE_VECTOR_STORE_ID");
+                  }
+                  await uploadKnowledgeFile(vectorStoreId, file);
+                  setUploadFeedback(`✅ 已上传文档：${file.name}`);
+                } catch (err) {
+                  const message =
+                    err instanceof Error ? err.message : "上传失败";
+                  setUploadFeedback(`⚠️ ${message}`);
+                  setError(message);
+                } finally {
+                  event.target.value = "";
+                  setUploading(false);
+                }
+              }}
+            />
+            <span className="text-xs font-medium text-slate-500">
+              {uploading ? "上传中…" : "上传知识库"}
+            </span>
+          </label>
         </div>
       </header>
 
@@ -186,5 +233,29 @@ export default function App() {
         </div>
       </footer>
     </div>
+      {uploading && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+          <div className="flex items-center gap-3 rounded-2xl bg-white px-6 py-4 text-slate-700 shadow-lg">
+            <span className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-transparent" />
+            <span>文件上传中，请稍候…</span>
+          </div>
+        </div>
+      )}
+      {uploadFeedback && (
+        <div
+          ref={modalRef}
+          className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-2xl bg-white px-5 py-3 text-sm text-slate-700 shadow-xl"
+        >
+          <span>{uploadFeedback}</span>
+          <button
+            type="button"
+            className="text-slate-400 transition hover:text-slate-600"
+            onClick={() => setUploadFeedback(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+    </>
   );
 }

@@ -5,6 +5,16 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface RetrievalToolCall {
+  type: string;
+  result?: string;
+}
+
+export interface AskAIResponse {
+  message: ChatMessage;
+  tool_calls?: RetrievalToolCall[];
+}
+
 export async function health() {
   const response = await fetch(`${API_BASE}/health`);
   if (!response.ok) {
@@ -16,7 +26,7 @@ export async function health() {
 export async function askAI(
   messages: ChatMessage[],
   onChunk?: (chunk: string) => void,
-): Promise<ChatMessage> {
+): Promise<AskAIResponse> {
   const response = await fetch(`${API_BASE}/ai/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -41,5 +51,42 @@ export async function askAI(
       onChunk?.(chunk);
     }
   }
-  return { role: "assistant", content: full };
+  try {
+    const parsed = JSON.parse(full) as AskAIResponse;
+    if (parsed && parsed.message) {
+      return parsed;
+    }
+  } catch {
+    // fall through to text response
+  }
+  return {
+    message: { role: "assistant", content: full },
+  };
+}
+
+export async function createVectorStore(name: string) {
+  const response = await fetch(`${API_BASE}/kb/vector-stores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  const data = await response.json();
+  console.info("Vector store created:", data);
+  return data;
+}
+
+export async function uploadKnowledgeFile(vectorStoreId: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch(
+    `${API_BASE}/kb/vector-stores/${vectorStoreId}/files`,
+    { method: "POST", body: formData },
+  );
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return response.json();
 }
