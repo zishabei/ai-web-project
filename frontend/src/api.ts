@@ -1,4 +1,5 @@
-export const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const rawApiBase = import.meta.env.VITE_API_BASE ?? "/api";
+export const API_BASE = rawApiBase.replace(/\/$/, "");
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -62,20 +63,6 @@ export async function askAI(
   return {
     message: { role: "assistant", content: full },
   };
-}
-
-export async function createVectorStore(name: string) {
-  const response = await fetch(`${API_BASE}/kb/vector-stores`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
-  });
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-  const data = await response.json();
-  console.info("Vector store created:", data);
-  return data;
 }
 
 export async function uploadKnowledgeFile(vectorStoreId: string, file: File) {
