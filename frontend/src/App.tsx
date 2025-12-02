@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Chat from "./Chat";
 import { login } from "./api";
 
@@ -10,6 +10,18 @@ export default function App() {
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // 持久化登录状态（刷新后仍保持）
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const savedUser = localStorage.getItem("aiweb_username");
+    const savedToken = localStorage.getItem("aiweb_token");
+    if (savedUser && savedToken) {
+      setUsername(savedUser);
+      setToken(savedToken);
+      setLoggedIn(true);
+    }
+  }, []);
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!username.trim()) return;
@@ -18,6 +30,10 @@ export default function App() {
       const res = await login(username, password);
       setToken(res.token);
       setLoggedIn(true);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("aiweb_username", res.username);
+        localStorage.setItem("aiweb_token", res.token);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录失败");
     }
