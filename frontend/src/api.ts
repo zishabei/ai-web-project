@@ -16,6 +16,11 @@ export interface AskAIResponse {
   tool_calls?: RetrievalToolCall[];
 }
 
+export interface AuthResponse {
+  token: string;
+  username: string;
+}
+
 export async function health() {
   const response = await fetch(`${API_BASE}/health`);
   if (!response.ok) {
@@ -76,4 +81,16 @@ export async function uploadKnowledgeFile(vectorStoreId: string, file: File) {
     throw new Error(await response.text());
   }
   return response.json();
+}
+
+export async function login(username: string, password: string): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return response.json() as Promise<AuthResponse>;
 }

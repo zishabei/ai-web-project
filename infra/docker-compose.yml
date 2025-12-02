@@ -22,7 +22,7 @@ services:
     image: zilliz/attu:latest
     environment:
       MILVUS_URL: "http://milvus:19530"
-    ports: ["8000:3000"]
+    ports: ["8300:3000"]
     depends_on: [milvus]
 volumes:
   pgdata:

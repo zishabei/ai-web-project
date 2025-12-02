@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     AZURE_OPENAI_API_KEY: str | None = None
     AZURE_OPENAI_DEPLOYMENT: str | None = None
     OPENAI_VECTOR_STORE_ID: str | None = None
-    DATABASE_URL: str = "postgresql://dev:dev@localhost:5432/aiweb"
+    DATABASE_URL: str = "postgresql+psycopg://dev:dev@localhost:5432/aiweb"
     REDIS_URL: str = "redis://localhost:6379/0"
     MILVUS_URI: str = "http://localhost:19530"
     model_config = SettingsConfigDict(
